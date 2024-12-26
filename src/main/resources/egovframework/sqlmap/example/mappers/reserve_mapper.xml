@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.example.sample.service.impl.ReserveMapper">
+	<resultMap id="reserveMap" type="reserveVO">
+		<result property="resId" column="res_id" />
+		<result property="resTitle" column="res_title" />
+		<result property="resDate" column="res_date" />
+		<result property="resTime" column="res_time" />
+		<result property="resMax" column="res_max" />
+		<result property="userId" column="user_id" />
+		<result property="userName" column="user_name" />
+		<result property="isRepresent" column="is_represent" />
+		<result property="groupId" column="group_id" />
+		<result property="resCount" column="res_count" />
+		<result property="userPhone" column="user_phone" />
+		<result property="isRequested" column="is_requested" />
+		<result property="eventNo" column="event_no" />
+		<result property="resEndTime" column="res_end_time" />
+	</resultMap>
+	
+	<resultMap id="guestsMap" type="guestsVO">
+		<result property="resId" column="res_id" />
+		<result property="guestName" column="guest_name" />
+		<result property="guestGender" column="guest_gender" />
+		<result property="isDisabled" column="is_disabled" />
+		<result property="isForeigner" column="is_foreigner" />
+		<result property="guestNo" column="guest_no" />
+		<result property="groupId" column="group_id" />
+		<result property="guestSido" column="guest_sido" />
+		<result property="guestGugun" column="guest_gugun" />
+	</resultMap>
+	
+	<resultMap id="userMap" type="userVO">
+		<result property="userId" column="user_id" />
+		<result property="userName" column="user_name" />
+		<result property="userType" column="user_type" />
+		<result property="userLevel" column="user_level" />
+		<result property="userDept" column="user_dept" />
+	</resultMap>
+	
+	<resultMap id="lineMap" type="lineVO">
+		<result property="lineNo" column="line_no" />
+		<result property="lineTitle" column="line_title" />
+		<result property="lineDate" column="line_date" />
+		<result property="userId" column="user_id" />
+		<result property="memberNo" column="member_no" />
+		<result property="memberInfo" column="member_info" />
+		<result property="memberType" column="member_type" />
+		<result property="memberId" column="member_id" />
+	</resultMap>
+	
+	<resultMap id="draftMap" type="draftVO">
+		<result property="draftNo" column="draft_no" />
+		<result property="draftTitle" column="draft_title" />
+		<result property="draftContent" column="draft_content" />
+		<result property="userId" column="user_id" />
+		<!-- <result property="userName" column="user_name" /> -->
+		<result property="reqNo" column="req_no" />
+		<result property="draftType" column="draft_type" />
+		<result property="resId" column="res_id" />
+	</resultMap>
+	
+	<resultMap id="fileMap" type="fileVO">
+		<result property="fileNo" column="file_no" />
+		<result property="fileName" column="file_name" />
+		<result property="uploadName" column="upload_name" />
+		<result property="fileSize" column="file_size" />
+		<result property="draftNo" column="draft_no" />
+	</resultMap>
+	
+	<resultMap id="eventMap" type="eventVO">
+		<result property="eventNo" column="event_no" />
+		<result property="eventTitle" column="event_title" />
+		<result property="eventTime" column="event_time" />
+	</resultMap>
+	
+	<!-- 예약 출력(관리자) -->
+	<select id="selectReservations" resultType="reserveVO" resultMap="reserveMap">
+		SELECT *
+		FROM reservations
+		<![CDATA[
+		WHERE res_date >= #{startDate}
+	    AND res_date < #{endDate}
+	    AND event_no = #{eventNo}
+	    ORDER BY res_date, res_time
+	    ]]>
+	</select>
+
+	<!-- 예약 생성(관리자) -->
+	<insert id="insertReserve" parameterType="reserveVO">
+		<selectKey keyProperty="resId" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO reservations
+			( res_title
+			, res_date
+			, res_time
+			, res_max
+			, event_no
+			, res_end_time
+			)
+		VALUES 
+			( #{resTitle}
+		    , #{resDate}
+		    , #{resTime}
+		    , #{resMax}
+		    , #{eventNo}
+		    , DATE_FORMAT(ADDTIME(STR_TO_DATE(#{resTime}, '%H:%i'), '02:00:00'), '%H:%i')
+		    )
+	</insert>
+	<!-- 예약 전체 생성(관리자) -->
+	<!-- <insert id="insertReserveAll" parameterType="reserveVO">
+		<selectKey keyProperty="resId" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		<foreach collection="reservations" item="reserve" separator=";">
+	        INSERT INTO reservations ( resTitle, 
+	        						   resDate, 
+	        						   resTime, 
+	        						   resMax
+	        						   )
+	        VALUES 					 ( #{reserve.resTitle}, 
+	        					       #{reserve.resDate}, 
+	        					       #{reserve.resTime}, 
+	        					       #{reserve.resMax}
+	        					       )
+	    </foreach>
+	</insert> -->
+	
+	<!-- 예약 삭제 -->
+	<delete id="deleteReserve" parameterType="int">
+		DELETE
+		FROM reservations
+		WHERE res_id = #{resId}
+	</delete>
+	<delete id="deleteGroupByResId" parameterType="int">
+		DELETE
+		FROM reserved_users
+		WHERE res_id = #{resId}
+	</delete>
+	<delete id="deleteGuestsByResId" parameterType="int">
+		DELETE
+		FROM guests
+		WHERE res_id = #{resId}
+	</delete>
+	
+	
+	
+	<!-- 예약 조회(관리자) -->
+	<select id="selectReservationInfo" resultType="reserveVO" resultMap="reserveMap">
+		SELECT *
+		FROM reservations
+		WHERE res_id = #{resId}
+	</select>
+	
+	<!-- 각 날에 현재 예약 수(관리자) -->
+	<select id="selectReservedCount" resultType="int" parameterType="int">
+		SELECT COUNT(*)
+		FROM reserved_users
+		WHERE res_id = #{resId}
+	</select>
+	<select id="selectGuestsDayCount" resultType="int" parameterType="int">
+		SELECT COUNT(*)
+		FROM guests
+		WHERE res_id = #{resId}
+	</select>
+	
+	<!-- 예약한 대표 인원 조회(관리자). 대표자 없으면 출력X -->
+	<select id="selectRepresentUser" resultType="reserveVO" resultMap="reserveMap">
+		SELECT *,
+		       (SELECT COUNT(*)
+		        FROM guests AS g
+		        WHERE g.res_id = ru.res_id 
+		        AND g.group_id = ru.group_id) AS res_count
+		FROM reserved_users ru JOIN users u ON ru.user_id = u.user_id
+		WHERE res_id = #{resId}
+	</select>
+	
+	<!-- 대표자 제외 예약 인원 조회(관리자) -->
+	<select id="selectReservedUserInfo" resultType="guestsVO" resultMap="guestsMap">
+		SELECT *
+		FROM guests
+		WHERE group_id = #{groupId}
+	</select>
+	
+	<!-- 예약한 그룹 삭제(관리자) -->
+	<delete id="deleteGroup" parameterType="int">
+		DELETE
+		FROM reserved_users
+		WHERE group_id = #{groupId}
+	</delete>
+	
+	<!-- 예약 저장(대표자) -->
+	<insert id="insertRepresenter" parameterType="reserveVO">
+		<selectKey keyProperty="groupId" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO reserved_users (  user_id
+									, res_id
+									, user_name
+									, is_represent
+									)
+		VALUES					   (  #{userId}
+								    , #{resId}
+								    , #{userName}
+								    , 1
+								    )									
+	</insert>
+	
+	<!-- 예약 저장(일행) -->
+	<insert id="insertGuests" parameterType="guestsVO">
+		<selectKey keyProperty="guestNo" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO guests (  res_id
+						    , guest_name
+						    , guest_gender
+						    , group_id
+						    , is_disabled
+						    , is_foreigner
+						    , guest_sido
+						    , guest_gugun
+							)
+		VALUES			   (  #{resId}
+						    , #{guestName}
+						    , #{guestGender}
+						    , #{groupId}
+						    , #{isDisabled}
+						    , #{isForeigner}
+						    , #{guestSido}
+						    , #{guestGugun}
+							)
+	</insert>
+	
+	<!-- 예약 확인 리스트 -->
+	<select id="selectReservedSchedules" resultType="reserveVO" resultMap="reserveMap">
+		SELECT *, (SELECT COUNT(*)
+			       FROM guests AS g
+			       WHERE g.res_id = ru.res_id 
+			       AND g.group_id = ru.group_id) AS res_count
+		FROM reserved_users ru JOIN reservations r ON ru.res_id = r.res_id
+		WHERE ru.user_id = #{userId};
+	</select>
+	
+	<!-- 예약 항목 당 예약자 수 -->
+	<select id="selectReservedGuestsCount" resultType="int" resultMap="guestsMap">
+		SELECT COUNT(*)
+		FROM guests g JOIN reserved_users u ON g.res_id = u.res_id
+		WHERE u.group_id = #{groupId}
+	</select>
+	
+	<!-- 예약 리스트의 예약정보(일행 확인 등) -->
+	<select id="selectReservedGuests" resultType="guestsVO" resultMap="guestsMap">
+		SELECT *
+		FROM guests g JOIN reserved_users u ON g.res_id = u.res_id
+		WHERE u.group_id = #{groupId}
+	</select>
+	
+	<!-- 예약한 대표자의 groupId 값 가져오기 -->
+	<select id="selectGroupIdByUserId" resultType="int">
+		SELECT group_id
+		FROM reserved_users
+		WHERE res_id = #{resId}
+		AND user_id = #{userId}
+	</select>
+	
+	<!-- 이미 예약한 날짜에 입장했을 때 처리를 위한 개수 -->
+	<select id="selectIsReserved" resultType="int">
+		SELECT COUNT(*)
+		FROM reserved_users ru JOIN reservations r ON ru.res_id = r.res_id
+		WHERE ru.user_id = #{userId}
+		AND ru.res_id = #{resId}
+	</select>
+	
+	<!-- 예약 취소(예약자) -->
+	<delete id="cancelReservation" parameterType="int">
+		DELETE
+		FROM reserved_users
+		WHERE res_id = #{resId}
+	</delete>
+	<delete id="deleteGuests" parameterType="int">
+		DELETE
+		FROM guests
+		WHERE group_id = #{groupId}
+	</delete>
+	
+	<!-- 예약 취소(관리자) -->
+	<update id="updateReservation">
+		UPDATE reservations
+		SET res_max = #{resMax}
+		WHERE res_id = #{resId}
+	</update>
+	
+	
+	<!-- 기안문 -->
+	<!-- 결재라인 명단 리스트 -->
+	<select id="selectEmployeeList" parameterType="userSearchVO" resultType="userVO" resultMap="userMap">
+		SELECT *
+		FROM users
+		WHERE 1=1
+		<if test="deptCondition != 0">
+			AND user_dept = #{deptCondition}
+		</if>
+		<if test="levelCondition != 0">
+			AND user_level = #{levelCondition}
+		</if>
+		AND user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+		AND user_type = 1
+		ORDER BY user_level DESC
+		LIMIT #{recordCountPerPage} OFFSET #{firstIndex}
+	</select>
+	<!-- 결재라인 명단 수 -->
+	<select id="selectEmployeeCount" parameterType="userSearchVO" resultType="int">
+		SELECT COUNT(*)
+		FROM users
+		WHERE 1=1
+		<if test="deptCondition != 0">
+			AND user_dept = #{userDept}
+		</if>
+		<if test="levelCondition != 0">
+			AND user_level = #{userLevel}
+		</if>
+		AND user_name LIKE CONCAT('%', #{searchKeyword}, '%')
+		AND user_type = 1
+	</select>
+	
+	<!-- 결재 라인 정보 저장 -->
+	<insert id="insertLineInfo" parameterType="lineVO">
+		<selectKey keyProperty="lineNo" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO draft_line ( line_title
+							   , line_date
+							   , user_id
+							   )
+		VALUES				   ( #{lineTitle}
+							   , #{lineDate}
+							   , #{userId})			   
+	</insert>
+	<!-- 결재 라인 결재자 저장 -->
+	<insert id="insertLineMemberInfo" parameterType="lineVO">
+		<selectKey keyProperty="memberNo" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO line_member ( member_info
+							    , user_id
+							    , member_type
+							    , line_no
+							   )
+		VALUES				   ( #{memberInfo}
+							   , #{userId}
+							   , #{memberType}
+							   , #{lineNo}
+							   )			   
+	</insert>
+	
+	<!-- 결재라인 정보 출력 -->
+	<select id="selectLineList" resultType="lineVO" resultMap="lineMap">
+		SELECT *
+		FROM draft_line
+		WHERE user_id = #{userId}
+	</select>
+	<select id="selectMemberList" resultType="lineVO" resultMap="lineMap">
+		SELECT d.line_no, d.line_title, d.line_date, d.user_id, l.member_no, l.member_info, l.user_id as member_id, l.member_type
+		FROM draft_line d JOIN line_member l ON d.line_no = l.line_no
+		WHERE d.user_id = #{userId}
+	</select>
+	
+	<!-- 결재 라인 수정 -->
+	<update id="updateLineInfo" parameterType="lineVO">
+		UPDATE draft_line
+		SET line_title = #{lineTitle}, 
+			line_date = #{lineDate}
+		WHERE line_no = #{lineNo}
+	</update>
+	<!-- 결재 라인 멤버 삭제 -->
+	<delete id="deleteLineMember" parameterType="int">
+		DELETE FROM line_member
+		WHERE line_no = #{lineNo}
+	</delete>
+	<!-- 결재 라인 정보 삭제 -->
+	<delete id="deleteLineInfo" parameterType="int">
+		DELETE FROM draft_line
+		WHERE line_no = #{lineNo}
+	</delete>
+	
+	<!-- 결재 요청 -->
+	<insert id="insertDraft" parameterType="draftVO">
+		<selectKey keyProperty="draftNo" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO drafts ( draft_title
+						   , draft_content
+						   , user_id
+						   , res_id
+						   )
+		VALUES			   ( #{draftTitle}
+						   , #{draftContent}
+						   , #{userId}
+						   , #{resId}
+						   )
+	</insert>
+	<!-- 결재 라인 신청 -->
+	<insert id="insertDraftRequests" parameterType="draftVO">
+		<selectKey keyProperty="reqNo" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO draft_requests ( draft_no
+								   , draft_type
+								   , user_id
+						   		   , res_id
+								   )
+		VALUES					   ( #{draftNo}
+								   , #{draftType}
+								   , #{userId}
+						   		   , #{resId}
+								   )								   
+	</insert>
+	<!-- 예약 상태 업데이트 -->
+	<update id="updateReservationStatus">
+		UPDATE reservations
+		SET is_requested = #{isRequested}
+		WHERE res_id = #{resId}
+	</update>
+	
+	<!-- 결재 확인(관리자) -->
+	<select id="selectApprovalList" resultType="draftVO" resultMap="draftMap">
+		SELECT d.draft_no, d.draft_title, d.draft_content, d.user_id, d.res_id, r.req_no, r.draft_type, r.user_id as requestId
+		FROM drafts d JOIN draft_requests r ON d.draft_no = r.draft_no
+		WHERE r.user_id = #{userId}
+	</select>
+	
+	<!-- 결재자인지 확인 -->
+	<select id="selectIsApprover" resultType="draftVO" resultMap="draftMap">
+		<!-- SELECT COUNT(*)
+		FROM draft_requests
+		WHERE res_id = #{resId}
+		AND user_id = #{userId} -->
+		
+		SELECT *
+		FROM draft_requests
+		WHERE res_id = #{resId}
+		AND user_id = #{userId}
+	</select>
+	
+	<!-- 파일 업로드 -->
+	<insert id="insertFiles" parameterType="fileVO">
+		<selectKey keyProperty="fileNo" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO files ( file_name
+		                  , upload_name
+		                  , file_size
+		                  , draft_no)
+		VALUES ( #{fileName}
+		       , #{uploadName}
+		       , #{fileSize}
+		       , #{draftNo})		                  
+	</insert>
+	
+	<!-- 결재할 기안문 상세조회 -->
+	<select id="selectDraftDetails" resultType="draftVO" resultMap="draftMap">
+		SELECT d.*, u.user_name as userName
+		FROM drafts d JOIN users u ON d.user_id = u.user_id
+		WHERE d.user_id = #{userId}
+	</select>
+	<!-- 기안문 파일 조회 -->
+	<select id="selectDraftFile" resultType="fileVO" resultMap="fileMap">
+		SELECT *
+		FROM files
+		WHERE draft_no = #{draftNo}
+	</select>
+	<!-- 기안문 파일이름 조회 -->
+	<select id="findUploadNameByFileNo" resultType="String">
+		SELECT upload_name
+		FROM files
+		WHERE file_no = #{fileNo}
+	</select>
+	<select id="findFileNameByFileNo" resultType="String">
+		SELECT file_name
+		FROM files
+		WHERE file_no = #{fileNo}
+	</select>
+	
+	<!-- 이벤트 생성 -->
+	<insert id="createEvent" parameterType="eventVO">
+		<selectKey keyProperty="eventNo" order="AFTER" resultType="int">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		INSERT INTO events ( event_title
+		                   , event_time
+		                   )
+		VALUES ( #{eventTitle}
+		       , #{eventTime}
+		       )
+	</insert>
+	<!-- 이벤트 리스트 조회 -->
+	<select id="selectEventList" resultType="eventVO" resultMap="eventMap">
+		SELECT *
+		FROM events
+	</select>
+	<!-- 이벤트 삭제 -->
+	<delete id="deleteEvent" parameterType="int">
+		DELETE
+		FROM events
+		WHERE event_no = #{eventNo}
+	</delete>
+	<!-- 이벤트 시간 조회 -->
+	<select id="selectEventTimeByEventNo" resultType="int">
+		SELECT event_time
+		FROM events
+		WHERE event_no = #{eventNo}
+	</select>
+</mapper>

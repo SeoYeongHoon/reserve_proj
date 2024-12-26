@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+    	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+    	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+
+	<!--
+		트랜잭션 매니저 Bean 정의
+		Spring의 DataSourceTransactionManager를 사용하여 트랜잭션 관리 설정.
+		dataSource라는 이름의 Bean을 트랜잭션 매니저에 연결.
+	-->
+	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+
+	<!--
+		트랜잭션 어드바이스 설정
+		txManager를 사용하여 트랜잭션 속성을 정의.
+		모든 메서드(*)에 대해 Exception 발생 시 트랜잭션 롤백 처리.
+	-->
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="*" rollback-for="Exception"/>
+		</tx:attributes>
+	</tx:advice>
+
+	<!--
+		AOP를 활용한 트랜잭션 관리 설정
+		1. 포인트컷(Pointcut): 특정 패키지와 클래스의 메서드 실행 시점을 지정.
+			- execution(* egovframework.example.sample..impl.*Impl.*(..)): 
+			  egovframework.example.sample 패키지 내 모든 하위 패키지에서
+			  'Impl'로 끝나는 클래스의 모든 메서드에 대해 포인트컷 설정.
+		2. 어드바이저(Advisor): 특정 포인트컷에 대해 txAdvice를 적용.
+	-->
+	<aop:config>
+		<aop:pointcut id="requiredTx" expression="execution(* egovframework.example.sample..impl.*Impl.*(..))"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="requiredTx" />
+	</aop:config>
+
+</beans>
